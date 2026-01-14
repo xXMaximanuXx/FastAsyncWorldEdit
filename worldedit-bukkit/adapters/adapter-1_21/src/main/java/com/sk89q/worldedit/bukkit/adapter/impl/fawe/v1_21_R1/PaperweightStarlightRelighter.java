@@ -68,12 +68,29 @@ public class PaperweightStarlightRelighter extends StarlightRelighter<ServerLeve
     protected void postProcessChunks(Set<ChunkPos> coords) {
         boolean delay = Settings.settings().LIGHTING.DELAY_PACKET_SENDING;
         for (ChunkPos pos : coords) {
+<<<<<<< HEAD:worldedit-bukkit/adapters/adapter-1_18_2/src/main/java/com/sk89q/worldedit/bukkit/adapter/impl/fawe/v1_18_R2/PaperweightStarlightRelighter.java
+            PaperweightPlatformAdapter.task(
+                    () -> {
+                        int x = pos.x;
+                        int z = pos.z;
+                        if (delay) { // we still need to send the block changes of that chunk
+                            PaperweightPlatformAdapter.sendChunk(serverLevel, x, z, false);
+                        }
+                        serverLevel.getChunkSource().removeTicketAtLevel(FAWE_TICKET, pos, LIGHT_LEVEL, Unit.INSTANCE);
+                    },
+                    serverLevel,
+                    pos.x,
+                    pos.z
+            );
+
+=======
             int x = pos.x;
             int z = pos.z;
             if (delay) { // we still need to send the block changes of that chunk
                 PaperweightPlatformAdapter.sendChunk(new IntPair(x, z), serverLevel, x, z);
             }
             serverLevel.getChunkSource().removeTicketAtLevel(FAWE_TICKET, pos, LIGHT_LEVEL, Unit.INSTANCE);
+>>>>>>> main:worldedit-bukkit/adapters/adapter-1_21/src/main/java/com/sk89q/worldedit/bukkit/adapter/impl/fawe/v1_21_R1/PaperweightStarlightRelighter.java
         }
     }
 

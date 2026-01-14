@@ -1,8 +1,13 @@
 import org.ajoberstar.grgit.Grgit
 import org.gradle.api.tasks.testing.logging.TestExceptionFormat.FULL
 import org.gradle.api.tasks.testing.logging.TestLogEvent.FAILED
-import java.time.format.DateTimeFormatter
+<<<<<<< HEAD
+import org.gradle.configurationcache.extensions.capitalized
 import xyz.jpenilla.runpaper.task.RunServer
+import java.net.URI
+=======
+>>>>>>> main
+import java.time.format.DateTimeFormatter
 
 plugins {
     alias(libs.plugins.codecov)
@@ -93,15 +98,32 @@ allprojects {
     }
 }
 
+<<<<<<< HEAD
+applyCommonConfiguration()
+val supportedVersions = listOf("1.18.2", "1.19.4", "1.20", "1.20.4")
+val foliaSupportedVersions = listOf("1.20.4")
+=======
 val supportedVersions: List<String> = listOf("1.20.4", "1.20.5", "1.20.6", "1.21", "1.21.1", "1.21.4", "1.21.5",
         "1.21.8", "1.21.10", "1.21.11")
+>>>>>>> main
 
 tasks {
-    supportedVersions.forEach {
-        register<RunServer>("runServer-$it") {
-            minecraftVersion(it)
-            pluginJars(*project(":worldedit-bukkit").getTasksByName("shadowJar", false).map { (it as Jar).archiveFile }
+    fun registerVersion(version: String, software: String, task: RunServer.() -> Unit = {}) {
+        register<RunServer>("run${software.capitalized()}-$version") {
+            minecraftVersion(version)
+            pluginJars(*project(":worldedit-bukkit").getTasksByName("shadowJar", false)
+                    .map { (it as Jar).archiveFile }
                     .toTypedArray())
+<<<<<<< HEAD
+            jvmArgs("-DPaper.IgnoreJavaVersion=true", "-Dcom.mojang.eula.agree=true")
+            group = "run $software"
+            runDirectory.set(file("run-$software-$version"))
+            task(this)
+        }
+    }
+    runServer {
+        registerVersion("1.20.4", "paper")
+=======
             jvmArgs("-DPaper.IgnoreJavaVersion=true", "-Dcom.mojang.eula.agree=true", "--add-modules=jdk.incubator.vector")
             group = "run paper"
             runDirectory.set(file("run-$it"))
@@ -113,7 +135,17 @@ tasks {
                 .toTypedArray())
         jvmArgs("-Dcom.mojang.eula.agree=true")
 
+>>>>>>> main
     }
+    supportedVersions.forEach {
+        registerVersion(it, "paper")
+    }
+    foliaSupportedVersions.forEach {
+        registerVersion(it, "folia") {
+            downloadsApiService.set(xyz.jpenilla.runtask.service.DownloadsAPIService.folia(project))
+        }
+    }
+
 }
 
 nmcpAggregation {

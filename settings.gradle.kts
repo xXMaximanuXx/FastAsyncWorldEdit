@@ -65,5 +65,26 @@ listOf("bukkit", "core", "cli").forEach {
 }
 include("worldedit-libs:core:ap")
 
+<<<<<<< HEAD
+dependencyResolutionManagement {
+    repositories {
+        mavenCentral()
+        maven {
+            name = "EngineHub"
+            url = uri("https://maven.enginehub.org/repo/")
+        }
+    }
+}
+pluginManagement {
+    repositories {
+        gradlePluginPortal()
+        maven {
+            name = "jmp repository"
+            url = uri("https://repo.jpenilla.xyz/snapshots")
+        }
+    }
+}
+=======
+>>>>>>> main
 
 enableFeaturePreview("TYPESAFE_PROJECT_ACCESSORS")

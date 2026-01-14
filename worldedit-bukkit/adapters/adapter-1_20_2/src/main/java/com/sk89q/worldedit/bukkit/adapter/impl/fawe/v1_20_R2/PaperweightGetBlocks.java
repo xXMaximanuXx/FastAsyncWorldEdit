@@ -12,11 +12,20 @@ import com.fastasyncworldedit.core.math.IntPair;
 import com.fastasyncworldedit.core.nbt.FaweCompoundTag;
 import com.fastasyncworldedit.core.queue.IChunkSet;
 import com.fastasyncworldedit.core.util.MathMan;
+<<<<<<< HEAD
+import com.fastasyncworldedit.core.util.TaskManager;
+=======
 import com.fastasyncworldedit.core.util.NbtUtils;
+>>>>>>> main
 import com.fastasyncworldedit.core.util.collection.AdaptedMap;
 import com.sk89q.worldedit.bukkit.BukkitAdapter;
 import com.sk89q.worldedit.bukkit.BukkitEntity;
 import com.sk89q.worldedit.bukkit.WorldEditPlugin;
+<<<<<<< HEAD
+import com.sk89q.worldedit.bukkit.adapter.ext.fawe.v1_20_R2.PaperweightAdapter;
+import com.sk89q.worldedit.bukkit.adapter.impl.fawe.v1_20_R2.nbt.PaperweightLazyCompoundTag;
+=======
+>>>>>>> main
 import com.sk89q.worldedit.internal.Constants;
 import com.sk89q.worldedit.internal.util.LogManagerCompat;
 import com.sk89q.worldedit.math.BlockVector3;
@@ -193,10 +202,17 @@ public class PaperweightGetBlocks extends AbstractBukkitGetBlocks<ServerLevel, L
     }
 
     @Override
+<<<<<<< HEAD
+    public CompoundTag getTile(int x, int y, int z) {
+        BlockEntity blockEntity = PaperweightPlatformAdapter.sync(() -> getChunk().getBlockEntity(
+                new BlockPos((x & 15) + (chunkX << 4), y, (z & 15) + (chunkZ << 4))),
+                serverLevel, chunkX, chunkZ);
+=======
     public FaweCompoundTag tile(final int x, final int y, final int z) {
         BlockEntity blockEntity = getChunk().getBlockEntity(new BlockPos((x & 15) + (
                 chunkX << 4), y, (z & 15) + (
                 chunkZ << 4)));
+>>>>>>> main
         if (blockEntity == null) {
             return null;
         }
@@ -205,8 +221,16 @@ public class PaperweightGetBlocks extends AbstractBukkitGetBlocks<ServerLevel, L
     }
 
     @Override
+<<<<<<< HEAD
+    public Map<BlockVector3, CompoundTag> getTiles() {
+        Map<BlockPos, BlockEntity> nmsTiles = PaperweightPlatformAdapter.sync(
+                () -> getChunk().getBlockEntities(),
+                serverLevel, chunkX, chunkZ
+        );
+=======
     public Map<BlockVector3, FaweCompoundTag> tiles() {
         Map<BlockPos, BlockEntity> nmsTiles = getChunk().getBlockEntities();
+>>>>>>> main
         if (nmsTiles.isEmpty()) {
             return Collections.emptyMap();
         }

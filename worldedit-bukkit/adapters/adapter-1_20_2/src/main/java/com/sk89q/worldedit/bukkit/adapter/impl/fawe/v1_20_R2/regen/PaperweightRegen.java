@@ -4,12 +4,20 @@ import com.fastasyncworldedit.bukkit.adapter.Regenerator;
 import com.fastasyncworldedit.core.Fawe;
 import com.fastasyncworldedit.core.queue.IChunkCache;
 import com.fastasyncworldedit.core.queue.IChunkGet;
+<<<<<<< HEAD
+=======
 import com.fastasyncworldedit.core.queue.implementation.chunk.ChunkCache;
+>>>>>>> main
 import com.google.common.collect.ImmutableList;
 import com.mojang.serialization.Lifecycle;
 import com.sk89q.worldedit.bukkit.BukkitAdapter;
 import com.sk89q.worldedit.bukkit.WorldEditPlugin;
 import com.sk89q.worldedit.bukkit.adapter.Refraction;
+<<<<<<< HEAD
+import com.sk89q.worldedit.bukkit.adapter.impl.fawe.v1_20_R2.PaperweightGetBlocks;
+import com.sk89q.worldedit.bukkit.adapter.impl.fawe.v1_20_R2.PaperweightPlatformAdapter;
+=======
+>>>>>>> main
 import com.sk89q.worldedit.extent.Extent;
 import com.sk89q.worldedit.regions.Region;
 import com.sk89q.worldedit.util.io.file.SafeFiles;
@@ -245,6 +253,45 @@ public class PaperweightRegen extends Regenerator {
     }
 
     @Override
+<<<<<<< HEAD
+    protected ProtoChunk createProtoChunk(int x, int z) {
+        return new FastProtoChunk(new ChunkPos(x, z), UpgradeData.EMPTY, freshWorld,
+                this.freshWorld.registryAccess().registryOrThrow(BIOME), null
+        );
+    }
+
+    @Override
+    protected LevelChunk createChunk(ProtoChunk protoChunk) {
+        return new LevelChunk(
+                freshWorld,
+                protoChunk,
+                null // we don't want to add entities
+        );
+    }
+
+    @Override
+    protected ChunkStatusWrap getFullChunkStatus() {
+        return new ChunkStatusWrap(ChunkStatus.FULL);
+    }
+
+    @Override
+    protected List<BlockPopulator> getBlockPopulators() {
+        return originalServerWorld.getWorld().getPopulators();
+    }
+
+    @Override
+    protected void populate(LevelChunk levelChunk, Random random, BlockPopulator blockPopulator) {
+        // BlockPopulator#populate has to be called synchronously for TileEntity access
+        PaperweightPlatformAdapter.task(() -> {
+            final CraftWorld world = freshWorld.getWorld();
+            final Chunk chunk = world.getChunkAt(levelChunk.locX, levelChunk.locZ);
+            blockPopulator.populate(world, random, chunk);
+        }, freshWorld, levelChunk.getPos().x, levelChunk.getPos().z);
+    }
+
+    @Override
+=======
+>>>>>>> main
     protected IChunkCache<IChunkGet> initSourceQueueCache() {
         return new ChunkCache<>(BukkitAdapter.adapt(freshWorld.getWorld()));
     }

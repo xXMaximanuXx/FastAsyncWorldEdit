@@ -11,6 +11,11 @@ import com.fastasyncworldedit.core.math.BitArrayUnstretched;
 import com.fastasyncworldedit.core.math.IntPair;
 import com.fastasyncworldedit.core.util.MathMan;
 import com.fastasyncworldedit.core.util.TaskManager;
+<<<<<<< HEAD:worldedit-bukkit/adapters/adapter-1_19_4/src/main/java/com/sk89q/worldedit/bukkit/adapter/impl/fawe/v1_19_R3/PaperweightPlatformAdapter.java
+import com.mojang.datafixers.util.Either;
+import com.sk89q.worldedit.bukkit.BukkitAdapter;
+=======
+>>>>>>> main:worldedit-bukkit/adapters/adapter-1_21/src/main/java/com/sk89q/worldedit/bukkit/adapter/impl/fawe/v1_21_R1/PaperweightPlatformAdapter.java
 import com.sk89q.worldedit.bukkit.WorldEditPlugin;
 import com.sk89q.worldedit.bukkit.adapter.BukkitImplAdapter;
 import com.sk89q.worldedit.bukkit.adapter.Refraction;
@@ -55,8 +60,13 @@ import net.minecraft.world.level.chunk.SingleValuePalette;
 import net.minecraft.world.level.chunk.status.ChunkStatus;
 import net.minecraft.world.level.entity.PersistentEntitySectionManager;
 import org.apache.logging.log4j.Logger;
+<<<<<<< HEAD:worldedit-bukkit/adapters/adapter-1_19_4/src/main/java/com/sk89q/worldedit/bukkit/adapter/impl/fawe/v1_19_R3/PaperweightPlatformAdapter.java
+import org.bukkit.Bukkit;
+import org.bukkit.craftbukkit.v1_19_R3.CraftChunk;
+=======
 import org.bukkit.Chunk;
 import org.bukkit.craftbukkit.CraftChunk;
+>>>>>>> main:worldedit-bukkit/adapters/adapter-1_21/src/main/java/com/sk89q/worldedit/bukkit/adapter/impl/fawe/v1_21_R1/PaperweightPlatformAdapter.java
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
@@ -311,8 +321,40 @@ public final class PaperweightPlatformAdapter extends NMSAdapter {
             if (Fawe.isMainThread()) {
                 return serverLevel.getChunk(chunkX, chunkZ);
             }
+<<<<<<< HEAD:worldedit-bukkit/adapters/adapter-1_19_4/src/main/java/com/sk89q/worldedit/bukkit/adapter/impl/fawe/v1_19_R3/PaperweightPlatformAdapter.java
+            CompletableFuture<org.bukkit.Chunk> future = serverLevel.getWorld().getChunkAtAsync(chunkX, chunkZ, true, true);
+            try {
+                CraftChunk chunk;
+                try {
+                    chunk = (CraftChunk) future.get(10, TimeUnit.SECONDS);
+                } catch (TimeoutException e) {
+                    String world = serverLevel.getWorld().getName();
+                    // We've already taken 10 seconds we can afford to wait a little here.
+                    boolean loaded = TaskManager.taskManager().syncGlobal(() -> Bukkit.getWorld(world) != null);
+                    if (loaded) {
+                        LOGGER.warn("Chunk {},{} failed to load in 10 seconds in world {}. Retrying...", chunkX, chunkZ, world);
+                        // Retry chunk load
+                        chunk = (CraftChunk) serverLevel.getWorld().getChunkAtAsync(chunkX, chunkZ, true, true).get();
+                    } else {
+                        throw new UnsupportedOperationException("Cannot load chunk from unloaded world " + world + "!");
+                    }
+                }
+                addTicket(serverLevel, chunkX, chunkZ);
+                return (LevelChunk) chunk.getHandle(ChunkStatus.FULL);
+            } catch (Throwable e) {
+                e.printStackTrace();
+            }
+        }
+        return TaskManager.taskManager().syncAt(
+                () -> serverLevel.getChunk(chunkX, chunkZ),
+                BukkitAdapter.adapt(serverLevel.getWorld()),
+                chunkX,
+                chunkZ
+        );
+=======
             return null;
         }
+>>>>>>> main:worldedit-bukkit/adapters/adapter-1_21/src/main/java/com/sk89q/worldedit/bukkit/adapter/impl/fawe/v1_21_R1/PaperweightPlatformAdapter.java
     }
 
     private static void addTicket(ServerLevel serverLevel, int chunkX, int chunkZ) {
@@ -377,7 +419,12 @@ public final class PaperweightPlatformAdapter extends NMSAdapter {
             } finally {
                 NMSAdapter.endChunkPacketSend(nmsWorld.getWorld().getName(), pair, lockHolder);
             }
+<<<<<<< HEAD:worldedit-bukkit/adapters/adapter-1_19_4/src/main/java/com/sk89q/worldedit/bukkit/adapter/impl/fawe/v1_19_R3/PaperweightPlatformAdapter.java
+            nearbyPlayers(nmsWorld, coordIntPair).forEach(p -> p.connection.send(packet));
+        }, BukkitAdapter.adapt(nmsWorld.getWorld()), chunkX, chunkZ);
+=======
         });
+>>>>>>> main:worldedit-bukkit/adapters/adapter-1_21/src/main/java/com/sk89q/worldedit/bukkit/adapter/impl/fawe/v1_21_R1/PaperweightPlatformAdapter.java
     }
 
     private static List<ServerPlayer> nearbyPlayers(ServerLevel serverLevel, ChunkPos coordIntPair) {
@@ -680,6 +727,10 @@ public final class PaperweightPlatformAdapter extends NMSAdapter {
     static PersistentEntitySectionManager<Entity> getEntitySectionManager(ServerLevel level) throws IllegalAccessException {
         //noinspection unchecked
         return (PersistentEntitySectionManager<Entity>) (SERVER_LEVEL_ENTITY_MANAGER.get(level));
+    }
+
+    public static void task(Runnable task, ServerLevel level, int chunkX, int chunkZ) {
+        TaskManager.taskManager().task(task, BukkitAdapter.adapt(level.getWorld()), chunkX, chunkZ);
     }
 
     record FakeIdMapBlock(int size) implements IdMap<net.minecraft.world.level.block.state.BlockState> {

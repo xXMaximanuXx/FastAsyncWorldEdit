@@ -40,7 +40,11 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.function.Consumer;
 
+<<<<<<< HEAD
+public final class LimitExtent extends AbstractDelegateExtent {
+=======
 public class LimitExtent extends AbstractDelegateExtent implements IBatchProcessor {
+>>>>>>> main
 
     private final FaweLimit limit;
     private final boolean[] faweExceptionReasonsUsed = new boolean[FaweException.Type.values().length];

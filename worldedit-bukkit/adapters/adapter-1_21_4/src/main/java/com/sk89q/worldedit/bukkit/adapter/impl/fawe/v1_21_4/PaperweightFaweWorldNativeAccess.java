@@ -97,7 +97,7 @@ public class PaperweightFaweWorldNativeAccess implements WorldNativeAccess<Level
             net.minecraft.world.level.block.state.BlockState blockState
     ) {
         int currentTick = MinecraftServer.currentTick;
-        if (Fawe.isMainThread()) {
+        if (Fawe.isTickThread()) {
             return levelChunk.setBlockState(blockPos, blockState,
                     this.sideEffectSet != null && this.sideEffectSet.shouldApply(SideEffect.UPDATE)
             );
@@ -258,7 +258,8 @@ public class PaperweightFaweWorldNativeAccess implements WorldNativeAccess<Level
                 }
             }
         };
-        TaskManager.taskManager().async(() -> TaskManager.taskManager().sync(runnableVal));
+        // we don't support Folia on that version, we can run this globally
+        TaskManager.taskManager().async(() -> TaskManager.taskManager().syncGlobal(runnableVal));
     }
 
     @Override
@@ -274,10 +275,11 @@ public class PaperweightFaweWorldNativeAccess implements WorldNativeAccess<Level
                 }
             }
         };
-        if (Fawe.isMainThread()) {
+        if (Fawe.isTickThread()) {
             runnableVal.run();
         } else {
-            TaskManager.taskManager().sync(runnableVal);
+            // we don't support Folia on that version, we can run this globally
+            TaskManager.taskManager().syncGlobal(runnableVal);
         }
         cachedChanges.clear();
         cachedChunksToSend.clear();
