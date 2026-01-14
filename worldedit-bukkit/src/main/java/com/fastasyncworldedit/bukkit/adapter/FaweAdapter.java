@@ -5,13 +5,16 @@ import com.fastasyncworldedit.core.util.TaskManager;
 import com.sk89q.worldedit.EditSession;
 import com.sk89q.worldedit.bukkit.BukkitAdapter;
 import com.sk89q.worldedit.bukkit.BukkitWorld;
+import com.sk89q.worldedit.bukkit.adapter.BukkitImplAdapter;
 import com.sk89q.worldedit.math.BlockVector3;
+import com.sk89q.worldedit.registry.state.Property;
 import com.sk89q.worldedit.util.TreeGenerator;
 import org.bukkit.Material;
 import org.bukkit.TreeType;
 import org.bukkit.World;
 import org.bukkit.block.BlockState;
 
+<<<<<<< HEAD
 import java.lang.invoke.MethodHandle;
 import java.lang.invoke.MethodHandles;
 import java.lang.invoke.VarHandle;
@@ -22,6 +25,11 @@ import java.util.Map;
 import static com.fastasyncworldedit.core.util.FoliaSupport.getRethrowing;
 import static com.fastasyncworldedit.core.util.FoliaSupport.runRethrowing;
 import static java.lang.invoke.MethodType.methodType;
+=======
+import java.util.Collection;
+import java.util.List;
+import java.util.Map;
+>>>>>>> main
 
 /**
  * A base class for version-specific implementations of the BukkitImplAdapter
@@ -31,6 +39,7 @@ import static java.lang.invoke.MethodType.methodType;
  */
 public abstract class FaweAdapter<TAG, SERVER_LEVEL> extends CachedBukkitAdapter implements IDelegateBukkitImplAdapter<TAG> {
 
+<<<<<<< HEAD
     private static final VarHandle CAPTURE_TREE_GENERATION;
     private static final VarHandle CAPTURE_BLOCK_STATES;
     private static final MethodHandle CAPTURED_BLOCK_STATES;
@@ -62,6 +71,16 @@ public abstract class FaweAdapter<TAG, SERVER_LEVEL> extends CachedBukkitAdapter
         CAPTURE_BLOCK_STATES = captureBlockStates;
         CAPTURED_BLOCK_STATES = capturedBlockStates;
         GET_CURRENT_WORLD_DATA = getCurrentWorldData;
+=======
+    protected final BukkitImplAdapter<TAG> parent;
+    protected int[] ibdToOrdinal = null;
+    protected int[] ordinalToIbdID = null;
+    protected boolean initialised = false;
+    protected Map<String, List<Property<?>>> allBlockProperties = null;
+
+    protected FaweAdapter(final BukkitImplAdapter<TAG> parent) {
+        this.parent = parent;
+>>>>>>> main
     }
 
     @Override
@@ -104,6 +123,7 @@ public abstract class FaweAdapter<TAG, SERVER_LEVEL> extends CachedBukkitAdapter
         return true;
     }
 
+<<<<<<< HEAD
     private void preCaptureStatesCommon(SERVER_LEVEL serverLevel) {
         if (FoliaSupport.isFolia()) {
             preCaptureStatesFolia(serverLevel);
@@ -154,6 +174,26 @@ public abstract class FaweAdapter<TAG, SERVER_LEVEL> extends CachedBukkitAdapter
             capturedBlockStates.clear();
         });
     }
+=======
+    public void mapFromGlobalPalette(char[] data) {
+        assert data.length == 4096;
+        ensureInit();
+        for (int i = 0; i < 4096; i++) {
+            data[i] = (char) this.ibdToOrdinal[data[i]];
+        }
+    }
+
+    public void mapWithPalette(char[] data, char[] paletteToOrdinal) {
+        for (int i = 0; i < 4096; i++) {
+            char paletteVal = data[i];
+            char val = paletteToOrdinal[paletteVal];
+            assert val != Character.MAX_VALUE; // paletteToOrdinal should prevent that
+            data[i] = val;
+        }
+    }
+
+    protected abstract void ensureInit();
+>>>>>>> main
 
     protected abstract void preCaptureStates(SERVER_LEVEL serverLevel);
 

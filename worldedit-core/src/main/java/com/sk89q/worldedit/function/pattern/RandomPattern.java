@@ -102,12 +102,20 @@ public class RandomPattern extends AbstractPattern {
 
     @Override
     public BaseBlock applyBlock(BlockVector3 position) {
+<<<<<<< HEAD
         return collection.next(this.random, position.getBlockX(), position.getBlockY(), position.getBlockZ()).applyBlock(position);
+=======
+        return collection.next(position.x(), position.y(), position.z()).applyBlock(position);
+>>>>>>> main
     }
 
     @Override
     public boolean apply(Extent extent, BlockVector3 get, BlockVector3 set) throws WorldEditException {
+<<<<<<< HEAD
         return collection.next(this.random, get.getBlockX(), get.getBlockY(), get.getBlockZ()).apply(extent, get, set);
+=======
+        return collection.next(get.x(), get.y(), get.z()).apply(extent, get, set);
+>>>>>>> main
     }
 
     @Override

@@ -64,7 +64,10 @@ import com.sk89q.worldedit.extent.Extent;
 import com.sk89q.worldedit.extent.inventory.BlockBag;
 import com.sk89q.worldedit.internal.util.LogManagerCompat;
 import com.sk89q.worldedit.regions.Region;
+import com.sk89q.worldedit.regions.RegionIntersection;
 import com.sk89q.worldedit.util.Identifiable;
+import com.sk89q.worldedit.util.SideEffect;
+import com.sk89q.worldedit.util.SideEffectSet;
 import com.sk89q.worldedit.util.eventbus.EventBus;
 import com.sk89q.worldedit.util.formatting.text.Component;
 import com.sk89q.worldedit.util.formatting.text.TextComponent;
@@ -86,6 +89,12 @@ public final class EditSessionBuilder {
 
     private static final Logger LOGGER = LogManagerCompat.getLogger();
 
+    // Keep heightmaps to maintain behavior and use configured lighting mode
+    private static final SideEffectSet FAST_SIDE_EFFECTS = SideEffectSet.none()
+            .with(SideEffect.HEIGHTMAPS)
+            // apply default value to respect config setting `lighting.mode`
+            .with(SideEffect.LIGHTING, SideEffect.LIGHTING.getDefaultValue());
+
     private final EventBus eventBus;
     private FaweLimit limit;
     private AbstractChangeSet changeSet;
@@ -104,6 +113,7 @@ public final class EditSessionBuilder {
     private Extent extent;
     private boolean compiled;
     private boolean wrapped;
+    private SideEffectSet sideEffectSet = null;
 
     private @Nullable
     World world;
@@ -416,6 +426,16 @@ public final class EditSessionBuilder {
     }
 
     /**
+     * Set the side effects to be used with this edit
+     *
+     * @since 2.12.3
+     */
+    public EditSessionBuilder setSideEffectSet(@Nullable SideEffectSet sideEffectSet) {
+        this.sideEffectSet = sideEffectSet;
+        return setDirty();
+    }
+
+    /**
      * Compile the builder to the settings given. Prepares history, limits, lighting, etc.
      */
     public EditSessionBuilder compile() {
@@ -445,13 +465,24 @@ public final class EditSessionBuilder {
                 fastMode = actor.getSession().hasFastMode();
             }
         }
+        if (sideEffectSet == null) {
+            sideEffectSet = fastMode ? FAST_SIDE_EFFECTS : SideEffectSet.defaults();
+        }
+        if (!fastMode && actor != null) {
+            sideEffectSet = sideEffectSet.with(
+                    SideEffect.ENTITY_EVENTS,
+                    limit.SKIP_ENTITY_SPAWN_EVENTS ? SideEffect.State.OFF : SideEffect.State.ON
+            );
+        }
         if (checkMemory == null) {
             checkMemory = actor != null && !this.fastMode;
         }
         if (checkMemory) {
             if (MemUtil.isMemoryLimitedSlow()) {
-                if (Permission.hasPermission(actor, "worldedit.fast")) {
+                if (actor != null && Permission.hasPermission(actor, "worldedit.fast")) {
                     actor.print(Caption.of("fawe.info.worldedit.oom.admin"));
+                } else {
+                    LOGGER.warn("Low memory");
                 }
                 throw FaweCache.LOW_MEMORY;
             }
@@ -470,12 +501,18 @@ public final class EditSessionBuilder {
                 if (unwrapped instanceof IQueueExtent) {
                     extent = queue = (IQueueExtent) unwrapped;
                 } else if (Settings.settings().QUEUE.PARALLEL_THREADS > 1 && !Fawe.isMainThread()) {
-                    ParallelQueueExtent parallel = new ParallelQueueExtent(Fawe.instance().getQueueHandler(), world, fastMode);
+                    ParallelQueueExtent parallel = new ParallelQueueExtent(
+                            Fawe.instance().getQueueHandler(),
+                            world,
+                            fastMode,
+                            sideEffectSet
+                    );
                     queue = parallel.getExtent();
                     extent = parallel;
                 } else {
                     extent = queue = Fawe.instance().getQueueHandler().getQueue(world);
                 }
+                queue.setSideEffectSet(sideEffectSet);
             } else {
                 wnaMode = true;
                 extent = world;
@@ -491,7 +528,7 @@ public final class EditSessionBuilder {
             }
             extent = this.bypassAll = wrapExtent(extent, eventBus, event, EditSession.Stage.BEFORE_CHANGE);
             this.bypassHistory = this.extent = wrapExtent(bypassAll, eventBus, event, EditSession.Stage.BEFORE_REORDER);
-            if (!this.fastMode || changeSet != null) {
+            if (!this.fastMode || this.sideEffectSet.shouldApply(SideEffect.HISTORY) || changeSet != null) {
                 if (changeSet == null) {
                     if (Settings.settings().HISTORY.USE_DISK) {
                         UUID uuid = actor == null ? Identifiable.CONSOLE : actor.getUniqueId();
@@ -546,13 +583,28 @@ public final class EditSessionBuilder {
             }
             // There's no need to do the below (and it'll also just be a pain to implement) if we're not placing chunks
             if (placeChunks) {
-                if (((relightMode != null && relightMode != RelightMode.NONE) || (relightMode == null && Settings.settings().LIGHTING.MODE > 0))) {
-                    relighter = WorldEdit.getInstance().getPlatformManager()
+                if (this.sideEffectSet.shouldApply(SideEffect.LIGHTING) || (relightMode != null && relightMode != RelightMode.NONE)) {
+                    relighter = WorldEdit
+                            .getInstance()
+                            .getPlatformManager()
                             .queryCapability(Capability.WORLD_EDITING)
-                            .getRelighterFactory().createRelighter(relightMode, world, queue);
+                            .getRelighterFactory()
+                            .createRelighter(relightMode, world, queue);
                     queue.addProcessor(new RelightProcessor(relighter));
                 }
-                queue.addProcessor(new HeightmapProcessor(world.getMinY(), world.getMaxY()));
+                if (this.sideEffectSet.shouldApply(SideEffect.HEIGHTMAPS)) {
+                    queue.addProcessor(new HeightmapProcessor(world.getMinY(), world.getMaxY()));
+                }
+                if (this.sideEffectSet.shouldApply(SideEffect.NEIGHBORS)) {
+                    Region region = allowedRegions == null || allowedRegions.length == 0
+                            ? null
+                            : allowedRegions.length == 1 ? allowedRegions[0] : new RegionIntersection(allowedRegions);
+                    queue.addProcessor(WorldEdit
+                            .getInstance()
+                            .getPlatformManager()
+                            .queryCapability(Capability.WORLD_EDITING)
+                            .getPlatformPlacementProcessor(extent, null, region));
+                }
 
                 if (!Settings.settings().EXPERIMENTAL.KEEP_ENTITIES_IN_BLOCKS) {
                     queue.addProcessor(new EntityInBlockRemovingProcessor());
@@ -635,7 +687,11 @@ public final class EditSessionBuilder {
                 };
             }
             if (limit != null && !limit.isUnlimited()) {
-                this.extent = new LimitExtent(this.extent, limit, onErrorMessage);
+                this.extent = new LimitExtent(this.extent, limit, onErrorMessage, placeChunks && combineStages);
+                // Only process if we're not necessarily going to catch tiles via Extent#setBlock, e.g. because using PQE methods
+                if (placeChunks && combineStages) {
+                    queue.addProcessor((LimitExtent) this.extent);
+                }
             }
             this.extent = wrapExtent(this.extent, eventBus, event, EditSession.Stage.BEFORE_HISTORY);
         }
@@ -708,6 +764,15 @@ public final class EditSessionBuilder {
      */
     public AbstractChangeSet getChangeTask() {
         return changeSet;
+    }
+
+    /**
+     * Get the SideEffectSet that will be used
+     *
+     * @since 2.12.3
+     */
+    public SideEffectSet getSideEffectSet() {
+        return sideEffectSet;
     }
 
     /**

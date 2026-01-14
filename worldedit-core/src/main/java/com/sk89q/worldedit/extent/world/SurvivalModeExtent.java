@@ -26,11 +26,15 @@ import com.sk89q.worldedit.blocks.BaseItemStack;
 import com.sk89q.worldedit.extent.AbstractDelegateExtent;
 import com.sk89q.worldedit.extent.Extent;
 import com.sk89q.worldedit.math.BlockVector3;
+<<<<<<< HEAD
 import com.sk89q.worldedit.math.Vector3;
 import com.sk89q.worldedit.util.Location;
 import com.sk89q.worldedit.util.nbt.CompoundBinaryTag;
+=======
+>>>>>>> main
 import com.sk89q.worldedit.world.World;
 import com.sk89q.worldedit.world.block.BlockStateHolder;
+import org.enginehub.linbus.tree.LinCompoundTag;
 
 import java.util.Collection;
 
@@ -118,9 +122,7 @@ public class SurvivalModeExtent extends AbstractDelegateExtent {
         } else {
             // Can't be an inlined check due to inconsistent generic return type
             if (stripNbt) {
-                //FAWE start - Use CompoundBinaryTag
-                return super.setBlock(location, block.toBaseBlock((CompoundBinaryTag) null));
-                //FAWE end
+                return super.setBlock(location, block.toBaseBlock((LinCompoundTag) null));
             } else {
                 return super.setBlock(location, block);
             }

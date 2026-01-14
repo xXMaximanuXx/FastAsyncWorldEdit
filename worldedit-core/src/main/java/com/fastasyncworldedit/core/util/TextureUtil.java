@@ -333,7 +333,6 @@ public class TextureUtil implements TextureHolder {
             new BiomeColor(255, "Unknown Biome", 0.8f, 0.4f, 0x92BD59, 0x77AB2F)};
 
     private static final String VERSION_MANIFEST = "https://piston-meta.mojang.com/mc/game/version_manifest.json";
-    private final BlockType[] layerBuffer = new BlockType[2];
     protected int[] blockColors = new int[BlockTypes.size()];
     protected long[] blockDistance = new long[BlockTypes.size()];
     protected long[] distances;
@@ -659,6 +658,17 @@ public class TextureUtil implements TextureHolder {
     }
 
     /**
+     * Create a copy of this {@link TextureUtil} instance if required for thread safety.
+     *
+     * @return either this {@link TextureUtil} instance if thread safe or a new copied instance.
+     * @since 2.13.0
+     */
+    public TextureUtil fork() {
+        // Default implementation should be thread safe (only array lookups)
+        return this;
+    }
+
+    /**
      * Get the block most closely matching a color based on the block's average color
      *
      * @param color color to match
@@ -736,9 +746,10 @@ public class TextureUtil implements TextureHolder {
                 }
             }
         }
-        layerBuffer[0] = BlockTypesCache.values[closest[0]];
-        layerBuffer[1] = BlockTypesCache.values[closest[1]];
-        return layerBuffer;
+        BlockType[] result = new BlockType[2];
+        result[0] = BlockTypesCache.values[closest[0]];
+        result[1] = BlockTypesCache.values[closest[1]];
+        return result;
     }
 
     /**
@@ -929,10 +940,10 @@ public class TextureUtil implements TextureHolder {
                     }.getType();
 
                     for (BlockType blockType : BlockTypesCache.values) {
-                        if (!blockType.getMaterial().isFullCube() || blockType.getId().toLowerCase().contains("shulker")) {
+                        if (!blockType.getMaterial().isFullCube() || blockType.id().toLowerCase().contains("shulker")) {
                             continue;
                         }
-                        switch (blockType.getId().toLowerCase(Locale.ROOT)) {
+                        switch (blockType.id().toLowerCase(Locale.ROOT)) {
                             case "slime_block":
                             case "honey_block":
                             case "mob_spawner":
@@ -940,7 +951,7 @@ public class TextureUtil implements TextureHolder {
                                 continue;
                         }
                         int combined = blockType.getInternalId();
-                        String id = blockType.getId();
+                        String id = blockType.id();
                         String[] split = id.split(":", 2);
                         String name = split.length == 1 ? id : split[1];
                         String nameSpace = split.length == 1 ? "" : split[0];
@@ -954,7 +965,8 @@ public class TextureUtil implements TextureHolder {
                             }
                         }
                         if (entry == null) {
-                            LOGGER.error("Cannot find {} in {}", modelsDir, file);
+                            final String[] dirs = Arrays.stream(modelsDir).map(s -> String.format(s, nameSpace, name)).toArray(String[]::new);
+                            LOGGER.error("Cannot find {} in {}", dirs, file);
                             continue;
                         }
 

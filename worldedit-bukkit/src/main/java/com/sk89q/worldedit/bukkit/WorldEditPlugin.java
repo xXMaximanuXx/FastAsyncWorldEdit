@@ -21,8 +21,8 @@ package com.sk89q.worldedit.bukkit;
 
 import com.fastasyncworldedit.bukkit.BukkitPermissionAttachmentManager;
 import com.fastasyncworldedit.bukkit.FaweBukkit;
-import com.fastasyncworldedit.core.util.UpdateNotification;
 import com.fastasyncworldedit.core.Fawe;
+import com.fastasyncworldedit.core.util.UpdateNotification;
 import com.fastasyncworldedit.core.util.WEManager;
 import com.google.common.base.Joiner;
 import com.google.common.collect.ImmutableList;
@@ -32,9 +32,11 @@ import com.sk89q.wepif.PermissionsResolverManager;
 import com.sk89q.worldedit.EditSession;
 import com.sk89q.worldedit.LocalSession;
 import com.sk89q.worldedit.WorldEdit;
+import com.sk89q.worldedit.WorldEditManifest;
 import com.sk89q.worldedit.bukkit.adapter.AdapterLoadException;
 import com.sk89q.worldedit.bukkit.adapter.BukkitImplAdapter;
 import com.sk89q.worldedit.bukkit.adapter.BukkitImplLoader;
+import com.sk89q.worldedit.bukkit.adapter.Refraction;
 import com.sk89q.worldedit.event.platform.CommandEvent;
 import com.sk89q.worldedit.event.platform.CommandSuggestionEvent;
 import com.sk89q.worldedit.event.platform.PlatformReadyEvent;
@@ -90,7 +92,9 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.List;
 import java.util.Locale;
+import java.util.Objects;
 import java.util.Optional;
+import java.util.jar.Attributes;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 import static com.sk89q.worldedit.internal.anvil.ChunkDeleter.DELCHUNKS_FILE_NAME;
@@ -120,7 +124,6 @@ public class WorldEditPlugin extends JavaPlugin {
     public void onLoad() {
 
         //FAWE start
-        this.bukkitConsoleCommandSender = new BukkitCommandSender(this, Bukkit.getConsoleSender());
         // This is already covered by Spigot, however, a more pesky warning with a proper explanation over "Ambiguous plugin name..." can't hurt.
         Plugin[] plugins = Bukkit.getServer().getPluginManager().getPlugins();
         for (Plugin p : plugins) {
@@ -132,17 +135,55 @@ public class WorldEditPlugin extends JavaPlugin {
             }
         }
         //FAWE end
+        //FAWE start
+        final Attributes attributes = WorldEditManifest.readAttributes();
+        Objects.requireNonNull(attributes, "Could not retrieve manifest attributes");
+        final String type = attributes.getValue("FAWE-Plugin-Jar-Type");
+        Objects.requireNonNull(type, "Could not determine plugin jar type");
+        if (PaperLib.isPaper()) {
+            if (PaperLib.getMinecraftVersion() < 20 || (PaperLib.getMinecraftVersion() == 20 && PaperLib.getMinecraftPatchVersion() < 5)) {
+                if (type.equals("mojang") && !Refraction.isMojangMapped()) {
+                    throw new IllegalStateException(
+                        """
+                        
+                        **********************************************
+                        ** You are using the wrong FAWE jar for your Minecraft version.
+                        ** Download the correct FAWE jar from Modrinth: https://modrinth.com/plugin/fastasyncworldedit/
+                        **********************************************"""
+                    );
+                }
+            } else if (PaperLib.getMinecraftVersion() > 20 || (PaperLib.getMinecraftVersion() == 20 && PaperLib.getMinecraftPatchVersion() >= 5)) {
+                if (type.equals("spigot")) {
+                    LOGGER.warn(
+                        """
+                        
+                        **********************************************
+                        ** You are using the Spigot-mapped FAWE jar on a modern Paper version.
+                        ** This will result in slower first-run times and wasted disk space from plugin remapping.
+                        ** Download the Paper FAWE jar from Modrinth to avoid this: https://modrinth.com/plugin/fastasyncworldedit/
+                        **********************************************"""
+                    );
+                }
+            }
+        } else {
+            if (type.equals("mojang")) {
+                throw new IllegalStateException(
+                    """
+                    
+                    **********************************************
+                    ** You are attempting to run the Paper FAWE jar on a Spigot server.
+                    ** Either switch to Paper (https://papermc.io), or download the correct FAWE jar for your platform
+                    ** from Modrinth: https://modrinth.com/plugin/fastasyncworldedit/
+                    **********************************************"""
+                );
+            }
+        }
+        //FAWE end
 
         INSTANCE = this;
 
         //noinspection ResultOfMethodCallIgnored
         getDataFolder().mkdirs();
-
-        WorldEdit worldEdit = WorldEdit.getInstance();
-
-        // Setup platform
-        platform = new BukkitServerInterface(this, getServer());
-        worldEdit.getPlatformManager().register(platform);
 
         //FAWE start - Migrate from config-legacy to worldedit-config
         migrateLegacyConfig();
@@ -150,10 +191,24 @@ public class WorldEditPlugin extends JavaPlugin {
 
         //FAWE start - Modify WorldEdit config name
         config = new BukkitConfiguration(new YAMLProcessor(new File(getDataFolder(), "worldedit-config.yml"), true), this);
+        // Load config before we say we've loaded platforms as it is used in listeners of the event
+        // Load config in onLoad to ensure it is loaded before FAWE settings to allow (inelegant) copying of values across
+        // where needed
+        config.load();
         //FAWE end
+
+        WorldEdit worldEdit = WorldEdit.getInstance();
+
+        // Setup platform
+        platform = new BukkitServerInterface(this, getServer());
+        worldEdit.getPlatformManager().register(platform);
 
         //FAWE start - Setup permission attachments
         permissionAttachmentManager = new BukkitPermissionAttachmentManager(this);
+        //FAWE end
+
+        //FAWE start - initialise bukkitConsoleCommandSender later
+        this.bukkitConsoleCommandSender = new BukkitCommandSender(this, Bukkit.getConsoleSender());
         //FAWE end
 
         Path delChunks = Paths.get(getDataFolder().getPath(), DELCHUNKS_FILE_NAME);
@@ -188,8 +243,6 @@ public class WorldEditPlugin extends JavaPlugin {
         //FAWE start
         new FaweBukkit(this);
         //FAWE end
-
-        config.load(); // Load config before we say we've loaded platforms as it is used in listeners of the event
 
         WorldEdit.getInstance().getEventBus().post(new PlatformsRegisteredEvent());
 
@@ -247,6 +300,7 @@ public class WorldEditPlugin extends JavaPlugin {
         setupTags();
         setupBiomes(false); // FAWE - load biomes later. Initialize biomes twice to allow for the registry to be present for
         // plugins requiring WE biomes during startup, as well as allowing custom biomes loaded later on to be present in WE.
+        ((BukkitImplAdapter<?>) adapter.value().get()).setupFeatures();
         WorldEdit.getInstance().getEventBus().post(new PlatformReadyEvent(platform));
     }
 
@@ -259,9 +313,10 @@ public class WorldEditPlugin extends JavaPlugin {
         /*
 
         // Block & Item
-        for (Material material : Material.values()) {
-            if (material.isBlock() && !material.isLegacy()) {
-                BlockType.REGISTRY.register(material.getKey().toString(), new BlockType(material.getKey().toString(), blockState -> {
+        Registry.MATERIAL.forEach(material -> {
+            String key = material.getKey().toString();
+            if (material.isBlock()) {
+                BlockType.REGISTRY.register(key, new BlockType(key, blockState -> {
                     // TODO Use something way less hacky than this.
                     ParserContext context = new ParserContext();
                     context.setPreferringWildcard(true);
@@ -278,13 +333,13 @@ public class WorldEditPlugin extends JavaPlugin {
                         }
                         return defaultState;
                     } catch (InputParseException e) {
-                        LOGGER.warn("Error loading block state for " + material.getKey(), e);
+                        LOGGER.warn("Error loading block state for " + key, e);
                         return blockState;
                     }
                 }));
             }
-            if (material.isItem() && !material.isLegacy()) {
-                ItemType.REGISTRY.register(material.getKey().toString(), new ItemType(material.getKey().toString()));
+            if (material.isItem()) {
+                ItemType.REGISTRY.register(key, new ItemType(key));
             }
         }
 */
@@ -306,10 +361,12 @@ public class WorldEditPlugin extends JavaPlugin {
         // Tags
         try {
             for (Tag<Material> blockTag : Bukkit.getTags(Tag.REGISTRY_BLOCKS, Material.class)) {
-                BlockCategory.REGISTRY.register(blockTag.getKey().toString(), new BlockCategory(blockTag.getKey().toString()));
+                String key = blockTag.getKey().toString();
+                BlockCategory.REGISTRY.register(key, new BlockCategory(blockTag.getKey().toString()));
             }
             for (Tag<Material> itemTag : Bukkit.getTags(Tag.REGISTRY_ITEMS, Material.class)) {
-                ItemCategory.REGISTRY.register(itemTag.getKey().toString(), new ItemCategory(itemTag.getKey().toString()));
+                String key = itemTag.getKey().toString();
+                ItemCategory.REGISTRY.register(key, new ItemCategory(itemTag.getKey().toString()));
             }
         } catch (NoSuchMethodError ignored) {
             LOGGER.warn(
@@ -558,17 +615,17 @@ public class WorldEditPlugin extends JavaPlugin {
     public BukkitPlayer wrapPlayer(Player player) {
         //FAWE start - Use cache over returning a direct BukkitPlayer
         BukkitPlayer wePlayer = getCachedPlayer(player);
-        if (wePlayer == null) {
-            synchronized (player) {
-                wePlayer = getCachedPlayer(player);
-                if (wePlayer == null) {
-                    wePlayer = new BukkitPlayer(this, player);
-                    player.setMetadata("WE", new FixedMetadataValue(this, wePlayer));
-                    return wePlayer;
-                }
-            }
+        if (wePlayer != null) {
+            return wePlayer;
         }
-        return wePlayer;
+        synchronized (player) {
+            BukkitPlayer bukkitPlayer = getCachedPlayer(player);
+            if (bukkitPlayer == null) {
+                bukkitPlayer = new BukkitPlayer(this, player);
+                player.setMetadata("WE", new FixedMetadataValue(this, bukkitPlayer));
+            }
+            return bukkitPlayer;
+        }
         //FAWE end
     }
 

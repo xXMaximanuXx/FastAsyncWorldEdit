@@ -10,11 +10,14 @@ import com.sk89q.worldedit.internal.block.BlockStateIdAccess;
 import com.sk89q.worldedit.internal.wna.WorldNativeAccess;
 import com.sk89q.worldedit.util.SideEffect;
 import com.sk89q.worldedit.util.SideEffectSet;
-import com.sk89q.worldedit.util.nbt.CompoundBinaryTag;
 import com.sk89q.worldedit.world.block.BlockState;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.nbt.CompoundTag;
+<<<<<<< HEAD
+=======
+import net.minecraft.server.MinecraftServer;
+>>>>>>> main
 import net.minecraft.server.level.FullChunkStatus;
 import net.minecraft.server.level.ServerChunkCache;
 import net.minecraft.world.level.Level;
@@ -25,6 +28,7 @@ import org.bukkit.Bukkit;
 import org.bukkit.craftbukkit.v1_20_R2.CraftWorld;
 import org.bukkit.craftbukkit.v1_20_R2.block.data.CraftBlockData;
 import org.bukkit.event.block.BlockPhysicsEvent;
+import org.enginehub.linbus.tree.LinCompoundTag;
 
 import javax.annotation.Nullable;
 import java.lang.ref.WeakReference;
@@ -143,14 +147,14 @@ public class PaperweightFaweWorldNativeAccess implements WorldNativeAccess<Level
     }
 
     @Override
-    public boolean updateTileEntity(BlockPos blockPos, CompoundBinaryTag tag) {
+    public boolean updateTileEntity(BlockPos blockPos, LinCompoundTag tag) {
         // We will assume that the tile entity was created for us,
         // though we do not do this on the other versions
         BlockEntity blockEntity = getLevel().getBlockEntity(blockPos);
         if (blockEntity == null) {
             return false;
         }
-        net.minecraft.nbt.Tag nativeTag = paperweightFaweAdapter.fromNativeBinary(tag);
+        net.minecraft.nbt.Tag nativeTag = paperweightFaweAdapter.fromNativeLin(tag);
         blockEntity.load((CompoundTag) nativeTag);
         return true;
     }
@@ -229,6 +233,12 @@ public class PaperweightFaweWorldNativeAccess implements WorldNativeAccess<Level
     }
 
     @Override
+    public void updateBlock(BlockPos pos, net.minecraft.world.level.block.state.BlockState oldState, net.minecraft.world.level.block.state.BlockState newState) {
+        Level world = getLevel();
+        newState.onPlace(world, pos, oldState, false);
+    }
+
+    @Override
     public void onBlockStateChange(
             BlockPos blockPos,
             net.minecraft.world.level.block.state.BlockState oldState,
@@ -247,7 +257,13 @@ public class PaperweightFaweWorldNativeAccess implements WorldNativeAccess<Level
                 if (!sendChunks) {
                     return;
                 }
+<<<<<<< HEAD
                 PaperweightPlatformAdapter.sendChunk(getLevel().getWorld().getHandle(), chunk.x(), chunk.z(), false);
+=======
+                for (IntPair chunk : toSend) {
+                    PaperweightPlatformAdapter.sendChunk(chunk, getLevel().getWorld().getHandle(), chunk.x(), chunk.z());
+                }
+>>>>>>> main
             }
         };
         TaskManager.taskManager().async(
@@ -257,7 +273,28 @@ public class PaperweightFaweWorldNativeAccess implements WorldNativeAccess<Level
 
     @Override
     public synchronized void flush() {
+<<<<<<< HEAD
         this.cache.flush();
+=======
+        RunnableVal<Object> runnableVal = new RunnableVal<>() {
+            @Override
+            public void run(Object value) {
+                cachedChanges.forEach(cc -> cc.levelChunk.setBlockState(cc.blockPos, cc.blockState,
+                        sideEffectSet != null && sideEffectSet.shouldApply(SideEffect.UPDATE)
+                ));
+                for (IntPair chunk : cachedChunksToSend) {
+                    PaperweightPlatformAdapter.sendChunk(chunk, getLevel().getWorld().getHandle(), chunk.x(), chunk.z());
+                }
+            }
+        };
+        if (Fawe.isMainThread()) {
+            runnableVal.run();
+        } else {
+            TaskManager.taskManager().sync(runnableVal);
+        }
+        cachedChanges.clear();
+        cachedChunksToSend.clear();
+>>>>>>> main
     }
 
     private record CachedChange(

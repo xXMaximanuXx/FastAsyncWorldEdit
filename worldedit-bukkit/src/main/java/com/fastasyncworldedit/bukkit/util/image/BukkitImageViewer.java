@@ -1,9 +1,8 @@
 package com.fastasyncworldedit.bukkit.util.image;
 
-import com.fastasyncworldedit.core.util.TaskManager;
 import com.fastasyncworldedit.core.util.image.Drawable;
-import com.fastasyncworldedit.core.util.image.ImageUtil;
 import com.fastasyncworldedit.core.util.image.ImageViewer;
+<<<<<<< HEAD
 import com.sk89q.worldedit.bukkit.BukkitAdapter;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
@@ -12,129 +11,34 @@ import org.bukkit.Rotation;
 import org.bukkit.World;
 import org.bukkit.block.BlockFace;
 import org.bukkit.entity.Entity;
+=======
+>>>>>>> main
 import org.bukkit.entity.ItemFrame;
 import org.bukkit.entity.Player;
-import org.bukkit.inventory.ItemStack;
-import org.bukkit.inventory.PlayerInventory;
-import org.inventivetalent.mapmanager.MapManagerPlugin;
-import org.inventivetalent.mapmanager.controller.MapController;
-import org.inventivetalent.mapmanager.controller.MultiMapController;
-import org.inventivetalent.mapmanager.manager.MapManager;
-import org.inventivetalent.mapmanager.wrapper.MapWrapper;
 
-import javax.annotation.Nullable;
-import java.awt.RenderingHints;
-import java.awt.image.BufferedImage;
 import java.io.IOException;
-import java.util.Collection;
 
+/**
+ * @deprecated for removal with no replacement. Out of scope for FAWE.
+ */
+@Deprecated(forRemoval = true, since = "2.13.1")
 public class BukkitImageViewer implements ImageViewer {
 
-    private final MapManager mapManager;
-    private final Player player;
-    private BufferedImage last;
-    private ItemFrame[][] frames;
-    private boolean reverse;
-
     public BukkitImageViewer(Player player) {
-        mapManager = ((MapManagerPlugin) Bukkit.getPluginManager().getPlugin("MapManager")).getMapManager();
-        this.player = player;
+        throw new UnsupportedOperationException("No longer supported.");
     }
 
     public void selectFrame(ItemFrame start) {
-        Location pos1 = start.getLocation().clone();
-        Location pos2 = start.getLocation().clone();
-
-        BlockFace facing = start.getFacing();
-        int planeX = facing.getModX() == 0 ? 1 : 0;
-        int planeY = facing.getModY() == 0 ? 1 : 0;
-        int planeZ = facing.getModZ() == 0 ? 1 : 0;
-
-        ItemFrame[][] res = find(pos1, pos2, facing);
-        Location tmp;
-        while (true) {
-            if (res != null) {
-                frames = res;
-            }
-            tmp = pos1.clone().subtract(planeX, planeY, planeZ);
-            if ((res = find(tmp, pos2, facing)) != null) {
-                pos1 = tmp;
-                continue;
-            }
-            tmp = pos2.clone().add(planeX, planeY, planeZ);
-            if ((res = find(pos1, tmp, facing)) != null) {
-                pos2 = tmp;
-                continue;
-            }
-            tmp = pos1.clone().subtract(planeX, 0, planeZ);
-            if ((res = find(tmp, pos2, facing)) != null) {
-                pos1 = tmp;
-                continue;
-            }
-            tmp = pos2.clone().add(planeX, 0, planeZ);
-            if ((res = find(pos1, tmp, facing)) != null) {
-                pos2 = tmp;
-                continue;
-            }
-            tmp = pos1.clone().subtract(0, 1, 0);
-            if ((res = find(tmp, pos2, facing)) != null) {
-                pos1 = tmp;
-                continue;
-            }
-            tmp = pos2.clone().add(0, 1, 0);
-            if ((res = find(pos1, tmp, facing)) != null) {
-                pos2 = tmp;
-                continue;
-            }
-            break;
-        }
+        throw new UnsupportedOperationException("No longer supported.");
     }
 
     public ItemFrame[][] getItemFrames() {
-        return frames;
-    }
-
-    private ItemFrame[][] find(Location pos1, Location pos2, BlockFace facing) {
-        try {
-            Location distance = pos2.clone().subtract(pos1).add(1, 1, 1);
-            int width = Math.max(distance.getBlockX(), distance.getBlockZ());
-            ItemFrame[][] frames = new ItemFrame[width][distance.getBlockY()];
-
-            World world = pos1.getWorld();
-
-            this.reverse = facing == BlockFace.NORTH || facing == BlockFace.EAST;
-            int v = 0;
-            for (double y = pos1.getY(); y <= pos2.getY(); y++, v++) {
-                int h = 0;
-                for (double z = pos1.getZ(); z <= pos2.getZ(); z++) {
-                    for (double x = pos1.getX(); x <= pos2.getX(); x++, h++) {
-                        Location pos = new Location(world, x, y, z);
-                        Collection<Entity> entities = world.getNearbyEntities(pos, 0.1, 0.1, 0.1);
-                        boolean contains = false;
-                        for (Entity ent : entities) {
-                            if (ent instanceof ItemFrame && ent.getFacing() == facing) {
-                                ItemFrame itemFrame = (ItemFrame) ent;
-                                itemFrame.setRotation(Rotation.NONE);
-                                contains = true;
-                                frames[reverse ? width - 1 - h : h][v] = (ItemFrame) ent;
-                                break;
-                            }
-                        }
-                        if (!contains) {
-                            return null;
-                        }
-                    }
-                }
-            }
-            return frames;
-        } catch (Throwable e) {
-            e.printStackTrace();
-        }
-        return null;
+        throw new UnsupportedOperationException("No longer supported.");
     }
 
     @Override
     public void view(Drawable drawable) {
+<<<<<<< HEAD
         view(null, drawable);
     }
 
@@ -205,17 +109,18 @@ public class BukkitImageViewer implements ImageViewer {
             }
         }
         return -1;
+=======
+        throw new UnsupportedOperationException("No longer supported.");
+>>>>>>> main
     }
 
     public void refresh() {
-        if (last != null) {
-            view(last, null);
-        }
+        throw new UnsupportedOperationException("No longer supported.");
     }
 
     @Override
     public void close() throws IOException {
-        last = null;
+        throw new UnsupportedOperationException("No longer supported.");
     }
 
 }
